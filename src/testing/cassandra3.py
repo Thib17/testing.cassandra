@@ -38,8 +38,9 @@ SEARCH_PATHS = ['/usr/local/cassandra',
 
 
 class Cassandra(Database):
-    BOOT_TIMEOUT = 20
+    DEFAULT_BOOT_TIMEOUT = 5 * 60
     DEFAULT_SETTINGS = dict(auto_start=2,
+                            boot_timeout=5 * 60,
                             base_dir=None,
                             cassandra_home=None,
                             pid=None,

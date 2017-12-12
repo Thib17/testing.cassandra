@@ -26,7 +26,6 @@ class TestCassandra(unittest.TestCase):
 
     def _connect(self, cassandra):
         if not self.cluster:
-            print(cassandra.connection_params())
             self.cluster = cassandra_cluster.Cluster(
                 **cassandra.connection_params()
             )

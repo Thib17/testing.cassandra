@@ -8,25 +8,33 @@ matrix:
   include:
     - python: 2.7
       env: TOXENV=py27
-      services: cassandra
     - python: 3.5
       env: TOXENV=py35
-      services: cassandra
     - python: 3.6
       env: TOXENV=py36
-      services: cassandra
     - env: TOXENV=coverage
-    - env: TOXENV=py36 CASSANDRA=3.11.1
+
+env:
+  # Travis doesn't have recent versions of Cassandra:
+  # https://github.com/travis-ci/travis-ci/issues/6420
+  global:
+    - CASSANDRA_VERSION=3.11.0
+    - CASSANDRA_HOME="${TRAVIS_BUILD_DIR}/.deps/apache-cassandra-${CASSANDRA_VERSION}/"
+    - MAX_HEAP_SIZE='1G'
+    - HEAP_NEWSIZE='200M'
 
 cache:
   directories:
     - $HOME/.cache/pip
 
+### As of 2016-04 Travis provides Cassandra 2.1 by default so we bundle our own
 before_install:
-  # Increase stack-size: http://stackoverflow.com/questions/11901421/cannot-start-cassandra-db-using-bin-cassandra
-  - '[ "$CASSANDRA" != "" ] && wget http://archive.apache.org/dist/cassandra/${CASSANDRA}/apache-cassandra-${CASSANDRA}-bin.tar.gz && tar -xvzf apache-cassandra-${CASSANDRA}-bin.tar.gz && export CASSANDRA_HOME=`pwd`/apache-cassandra-${CASSANDRA} || true'
-  - export MAX_HEAP_SIZE='1G'
-  - export HEAP_NEWSIZE='200M'
+   - mkdir .deps
+   - cd .deps
+   - wget "http://www.us.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
+   - tar -xzf "apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz"
+   - cd -
+
 
 install: pip install docutils tox
 script: tox
