@@ -3,9 +3,9 @@
 import os
 import sys
 import signal
-import pycassa
+import cassandra.cluster as cassandra_cluster
 import tempfile
-import testing.cassandra
+import testing.cassandra3
 from mock import patch
 from time import sleep
 from shutil import rmtree
@@ -17,16 +17,41 @@ else:
 
 
 class TestCassandra(unittest.TestCase):
+
+    def setUp(self):
+        self.cluster = self.session = None
+
+    def tearDown(self):
+        self._shutdown()
+
+    def _connect(self, cassandra):
+        if not self.cluster:
+            print(cassandra.connection_params())
+            self.cluster = cassandra_cluster.Cluster(
+                **cassandra.connection_params()
+            )
+        if not self.session:
+            self.session = self.cluster.connect()
+        return self.session
+
+    def _shutdown(self):
+        if self.session is not None:
+            self.session.shutdown()
+            self.session = None
+        if self.cluster is not None:
+            self.cluster.shutdown()
+            self.cluster = None
+
     def test_basic(self):
         # start cassandra server
-        cassandra = testing.cassandra.Cassandra()
+        cassandra = testing.cassandra3.Cassandra()
         self.assertIsNotNone(cassandra)
         self.assertEqual(cassandra.server_list(),
                          ['127.0.0.1:%d' % cassandra.cassandra_yaml['rpc_port']])
 
         # connect to cassandra
-        conn = pycassa.pool.ConnectionPool('test', cassandra.server_list())
-        self.assertIsNotNone(conn)
+        session = self._connect(cassandra)
+        self.assertIsNotNone(session)
 
         # shutting down
         pid = cassandra.server_pid
@@ -41,7 +66,7 @@ class TestCassandra(unittest.TestCase):
 
     def test_stop(self):
         # start cassandra server
-        cassandra = testing.cassandra.Cassandra()
+        cassandra = testing.cassandra3.Cassandra()
         self.assertTrue(os.path.exists(cassandra.base_dir))
         self.assertTrue(cassandra.is_alive())
 
@@ -59,33 +84,33 @@ class TestCassandra(unittest.TestCase):
         del cassandra
 
     def test_with_cassandra(self):
-        with testing.cassandra.Cassandra() as cassandra:
+        with testing.cassandra3.Cassandra() as cassandra:
             self.assertIsNotNone(cassandra)
 
             # connect to cassandra
-            conn = pycassa.pool.ConnectionPool('test', cassandra.server_list())
+            conn = self._connect(cassandra)
             self.assertIsNotNone(conn)
             self.assertTrue(cassandra.is_alive())
 
         self.assertFalse(cassandra.is_alive())
 
     def test_multiple_cassandra(self):
-        cassandra1 = testing.cassandra.Cassandra()
-        cassandra2 = testing.cassandra.Cassandra()
+        cassandra1 = testing.cassandra3.Cassandra()
+        cassandra2 = testing.cassandra3.Cassandra()
         self.assertNotEqual(cassandra1.server_pid, cassandra2.server_pid)
 
         self.assertTrue(cassandra1.is_alive())
         self.assertTrue(cassandra2.is_alive())
 
-    @patch("testing.cassandra.find_cassandra_home")
+    @patch("testing.cassandra3.find_cassandra_home")
     def test_cassandra_is_not_found(self, find_cassandra_home):
         find_cassandra_home.side_effect = RuntimeError
 
         with self.assertRaises(RuntimeError):
-            testing.cassandra.Cassandra()
+            testing.cassandra3.Cassandra()
 
     def test_fork(self):
-        cassandra = testing.cassandra.Cassandra()
+        cassandra = testing.cassandra3.Cassandra()
         if os.fork() == 0:
             del cassandra
             cassandra = None
@@ -96,7 +121,7 @@ class TestCassandra(unittest.TestCase):
             self.assertTrue(cassandra.is_alive())  # process is alive (delete mysqld obj in child does not effect)
 
     def test_stop_on_child_process(self):
-        cassandra = testing.cassandra.Cassandra()
+        cassandra = testing.cassandra3.Cassandra()
         if os.fork() == 0:
             cassandra.stop()
             os.kill(cassandra.server_pid, 0)  # process is alive (calling stop() is ignored)
@@ -111,42 +136,39 @@ class TestCassandra(unittest.TestCase):
             tmpdir = tempfile.mkdtemp()
 
             # create new database
-            with testing.cassandra.Cassandra(base_dir=tmpdir) as cassandra:
-                conn = pycassa.system_manager.SystemManager(cassandra.server_list()[0])
-                conn.create_column_family('test', 'hello')
-                conn.close()
+            with testing.cassandra3.Cassandra(base_dir=tmpdir) as cassandra:
+                session = self._connect(cassandra)
+                session.execute('CREATE TABLE IF NOT EXISTS test.hello (k INT, PRIMARY KEY(k))')
+                session.execute('INSERT INTO test.hello (k) VALUES(1)')
 
-                conn = pycassa.pool.ConnectionPool('test', cassandra.server_list())
-                cf = pycassa.ColumnFamily(conn, 'hello')
-                cf.insert('score', {'scott': '1', 'tiger': '2'})
-
+            self._shutdown()
             # flushing MemTable (commit log) to SSTable
-            with testing.cassandra.Cassandra(base_dir=tmpdir) as cassandra:
+            with testing.cassandra3.Cassandra(base_dir=tmpdir) as cassandra:
                 pass
 
             # create another database from first one
             data_dir = os.path.join(tmpdir, 'data')
-            with testing.cassandra.Cassandra(copy_data_from=data_dir) as cassandra:
-                conn = pycassa.pool.ConnectionPool('test', cassandra.server_list())
-                values = pycassa.ColumnFamily(conn, 'hello').get('score')
+            with testing.cassandra3.Cassandra(copy_data_from=data_dir) as cassandra:
+                session = self._connect(cassandra)
+                results = list(session.execute('SELECT k FROM test.hello'))
 
-                self.assertEqual({'scott': '1', 'tiger': '2'}, values)
+                self.assertEqual(1, results[0].k)
         finally:
             rmtree(tmpdir)
 
     def test_skipIfNotInstalled_found(self):
-        @testing.cassandra.skipIfNotInstalled
+        @testing.cassandra3.skipIfNotInstalled
         def testcase():
             pass
 
         self.assertEqual(False, hasattr(testcase, '__unittest_skip__'))
         self.assertEqual(False, hasattr(testcase, '__unittest_skip_why__'))
 
-    @patch("testing.cassandra.find_cassandra_home")
+    @patch("testing.cassandra3.find_cassandra_home")
     def test_skipIfNotInstalled_notfound(self, find_cassandra_home):
         find_cassandra_home.side_effect = RuntimeError
 
-        @testing.cassandra.skipIfNotInstalled
+        @testing.cassandra3.skipIfNotInstalled
         def testcase():
             pass
 
@@ -156,10 +178,10 @@ class TestCassandra(unittest.TestCase):
         self.assertEqual("Cassandra not found", testcase.__unittest_skip_why__)
 
     def test_skipIfNotInstalled_with_args_found(self):
-        cassandra_home = testing.cassandra.find_cassandra_home()
+        cassandra_home = testing.cassandra3.find_cassandra_home()
         path = os.path.join(cassandra_home, 'bin', 'cassandra')
 
-        @testing.cassandra.skipIfNotInstalled(path)
+        @testing.cassandra3.skipIfNotInstalled(path)
         def testcase():
             pass
 
@@ -167,7 +189,7 @@ class TestCassandra(unittest.TestCase):
         self.assertEqual(False, hasattr(testcase, '__unittest_skip_why__'))
 
     def test_skipIfNotInstalled_with_args_notfound(self):
-        @testing.cassandra.skipIfNotInstalled("/path/to/anywhere")
+        @testing.cassandra3.skipIfNotInstalled("/path/to/anywhere")
         def testcase():
             pass
 
@@ -177,18 +199,18 @@ class TestCassandra(unittest.TestCase):
         self.assertEqual("Cassandra not found", testcase.__unittest_skip_why__)
 
     def test_skipIfNotFound_found(self):
-        @testing.cassandra.skipIfNotFound
+        @testing.cassandra3.skipIfNotFound
         def testcase():
             pass
 
         self.assertEqual(False, hasattr(testcase, '__unittest_skip__'))
         self.assertEqual(False, hasattr(testcase, '__unittest_skip_why__'))
 
-    @patch("testing.cassandra.find_cassandra_home")
+    @patch("testing.cassandra3.find_cassandra_home")
     def test_skipIfNotFound_notfound(self, find_cassandra_home):
         find_cassandra_home.side_effect = RuntimeError
 
-        @testing.cassandra.skipIfNotFound
+        @testing.cassandra3.skipIfNotFound
         def testcase():
             pass
 

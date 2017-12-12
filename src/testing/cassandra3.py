@@ -13,17 +13,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from __future__ import absolute_import
+
 import os
 import re
 import yaml
 import socket
-import pycassa
+import sys
+import imp
+import cassandra.cluster as cassandra_cluster
 from glob import glob
 from shutil import copyfile, copytree
 
 from testing.common.database import (
     Database, SkipIfNotInstalledDecorator, get_unused_port
 )
+
 
 __all__ = ['Cassandra', 'skipIfNotInstalled', 'skipIfNotFound']
 
@@ -85,6 +90,13 @@ class Cassandra(Database):
         hostname = '127.0.0.1:%d' % self.cassandra_yaml['rpc_port']
         return [hostname]
 
+    def connection_params(self):
+        return {
+            'contact_points': ['127.0.0.1'],
+            'port': int(self.cassandra_yaml['native_transport_port']),
+            'load_balancing_policy': cassandra_cluster.default_lbp_factory(),
+        }
+
     def get_data_directory(self):
         return os.path.join(self.base_dir, 'data')
 
@@ -141,12 +153,18 @@ class Cassandra(Database):
 
     def poststart(self):
         # create test keyspace
-        conn = pycassa.system_manager.SystemManager(self.server_list()[0])
-        try:
-            conn.create_keyspace('test', pycassa.SIMPLE_STRATEGY, {'replication_factor': '1'})
-        except pycassa.InvalidRequestException:
-            pass
-        conn.close()
+        cluster = cassandra_cluster.Cluster(**self.connection_params())
+        session = cluster.connect()
+
+        cql = (
+            "CREATE KEYSPACE IF NOT EXISTS test "
+            " WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 1}"
+            " AND durable_writes = false;"
+        )
+        session.execute(cql)
+
+        session.shutdown()
+        cluster.shutdown()
 
 
 class CassandraSkipIfNotInstalledDecorator(SkipIfNotInstalledDecorator):

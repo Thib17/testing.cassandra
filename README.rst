@@ -1,33 +1,33 @@
-``testing.cassandra`` automatically setups a cassandra instance in a temporary directory, and destroys it after testing
+``testing.cassandra3`` automatically setups a cassandra instance in a temporary directory, and destroys it after testing
 
-.. image:: https://travis-ci.org/tk0miya/testing.cassandra.svg?branch=master
-   :target: https://travis-ci.org/tk0miya/testing.cassandra
+.. image:: https://travis-ci.org/criteo/testing.cassandra3.svg?branch=master
+   :target: https://travis-ci.org/criteo/testing.cassandra3
 
-.. image:: https://coveralls.io/repos/tk0miya/testing.cassandra/badge.png?branch=master
-   :target: https://coveralls.io/r/tk0miya/testing.cassandra?branch=master
+.. image:: https://coveralls.io/repos/criteo/testing.cassandra3/badge.png?branch=master
+   :target: https://coveralls.io/r/criteo/testing.cassandra3?branch=master
 
-.. image:: https://codeclimate.com/github/tk0miya/testing.cassandra/badges/gpa.svg
-   :target: https://codeclimate.com/github/tk0miya/testing.cassandra
+.. image:: https://codeclimate.com/github/criteo/testing.cassandra3/badges/gpa.svg
+   :target: https://codeclimate.com/github/criteo/testing.cassandra3
 
 Install
 =======
 Use easy_install (or pip)::
 
-   $ easy_install testing.cassandra
+   $ easy_install testing.cassandra3
 
-And ``testing.cassandra`` requires Cassandra server.
+And ``testing.cassandra3`` requires Cassandra server.
 
 
 Usage
 =====
-Create Cassandra instance using ``testing.cassandra.Cassandra``::
+Create Cassandra instance using ``testing.cassandra3.Cassandra``::
 
-  import pycassa
-  import testing.cassandra
+  import cassandra
+  import testing.cassandra3
 
   # Launch new Cassandra server
-  with testing.cassandra.Cassandra as cassandra:
-      conn = pycassa.pool.ConnectionPool('test', cassandra.server_list())
+  with testing.cassandra3.Cassandra as cassandra:
+      conn = cassandra.cluster.Cluster(**cassandra.connection_params())
       #
       # do any tests using Cassandra...
       #
@@ -35,37 +35,37 @@ Create Cassandra instance using ``testing.cassandra.Cassandra``::
   # Cassandra server is terminated here
 
 
-``testing.cassandra`` automatically searchs for cassandra files in ``/usr/local/``.
+``testing.cassandra3`` automatically searchs for cassandra files in ``/usr/local/``.
 If you install cassandra to other directory, set ``cassandra_home`` keyword::
 
   # uses a copy of specified data directory of Cassandra.
-  cassandra = testing.cassandra.Cassandra(copy_data_from='/path/to/your/database')
+  cassandra = testing.cassandra3.Cassandra(copy_data_from='/path/to/your/database')
 
 
-``testing.cassandra.Cassandra`` executes ``cassandra`` on instantiation.
+``testing.cassandra3.Cassandra`` executes ``cassandra`` on instantiation.
 On deleting Cassandra object, it terminates Cassandra instance and removes temporary directory.
 
 If you want a database including column families and any fixtures for your apps,
 use ``copy_data_from`` keyword::
 
   # uses a copy of specified data directory of Cassandra.
-  cassandra = testing.cassandra.Cassandra(copy_data_from='/path/to/your/database')
+  cassandra = testing.cassandra3.Cassandra(copy_data_from='/path/to/your/database')
 
 
 You can specify parameters for Cassandra with ``cassandra_yaml`` keyword::
 
   # boot Cassandra server listens on 12345 port
-  cassandra = testing.cassandra.Cassandra(cassandra_yaml={'rpc_port': 12345})
+  cassandra = testing.cassandra3.Cassandra(cassandra_yaml={'rpc_port': 12345})
 
 
 For example, you can setup new Cassandra server for each testcases on setUp() method::
 
   import unittest
-  import testing.cassandra
+  import testing.cassandra3
 
   class MyTestCase(unittest.TestCase):
       def setUp(self):
-          self.cassandra = testing.cassandra.Cassandra()
+          self.cassandra = testing.cassandra3.Cassandra()
 
       def tearDown(self):
           self.cassandra.stop()
@@ -73,9 +73,9 @@ For example, you can setup new Cassandra server for each testcases on setUp() me
 
 Requirements
 ============
-* Cassandra 1.1, 1.2, 2.0, 2.1, 2.2
-* Python 2.6, 2.7
-* pycassa
+* Cassandra 3.11.1
+* Python 2.7, 3.4, 3.5, 3.6
+* cassandra-driver
 * PyYAML
 
 
@@ -86,6 +86,12 @@ Apache License 2.0
 
 History
 =======
+
+1.3.0 (2017-12-10)
+------------------
+* Fork testing.cassandra
+* Drop support for Cassandra 2.x and Python 2.6
+* Add support for Cassandra 3.x and Python 3
 
 1.2.0 (2016-02-03)
 -------------------
