@@ -34,7 +34,7 @@ setup(
     keywords=[],
     author='Takeshi Komiya',
     author_email='i.tkomiya at gmail.com',
-    url='https://github.com/criteo/testing.cassandra3',
+    url='https://github.com/criteo-forks/testing.cassandra',
     license='Apache License 2.0',
     packages=find_packages('src'),
     package_dir={'': 'src'},

@@ -1,13 +1,15 @@
 ``testing.cassandra3`` automatically setups a cassandra instance in a temporary directory, and destroys it after testing
 
-.. image:: https://travis-ci.org/criteo/testing.cassandra3.svg?branch=master
-   :target: https://travis-ci.org/criteo/testing.cassandra3
+.. image:: https://travis-ci.org/criteo-forks/testing.cassandra.svg?branch=master
+   :target: https://travis-ci.org/criteo-forks/testing.cassandra
 
-.. image:: https://coveralls.io/repos/criteo/testing.cassandra3/badge.png?branch=master
-   :target: https://coveralls.io/r/criteo/testing.cassandra3?branch=master
+.. image:: https://coveralls.io/repos/criteo-forks/testing.cassandra/badge.png?branch=master
+   :target: https://coveralls.io/r/criteo-forks/testing.cassandra?branch=master
 
-.. image:: https://codeclimate.com/github/criteo/testing.cassandra3/badges/gpa.svg
-   :target: https://codeclimate.com/github/criteo/testing.cassandra3
+.. image:: https://codeclimate.com/github/criteo-forks/testing.cassandra/badges/gpa.svg
+   :target: https://codeclimate.com/github/criteo-forks/testing.cassandra
+
+This is a fork of https://github.com/tk0miya/testing.cassandra.
 
 Install
 =======
