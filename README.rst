@@ -74,7 +74,7 @@ For example, you can setup new Cassandra server for each testcases on setUp() me
 Requirements
 ============
 * Cassandra 3.11.1
-* Python 2.7, 3.4, 3.5, 3.6
+* Python 2.7, 3.5, 3.6
 * cassandra-driver
 * PyYAML
 
