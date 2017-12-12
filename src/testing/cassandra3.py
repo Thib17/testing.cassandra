@@ -19,8 +19,6 @@ import os
 import re
 import yaml
 import socket
-import sys
-import imp
 import cassandra.cluster as cassandra_cluster
 from glob import glob
 from shutil import copyfile, copytree
@@ -130,7 +128,7 @@ class Cassandra(Database):
             sock.shutdown(socket.SHUT_RDWR)
             sock.close()
             return True
-        except:
+        except Exception:
             return False
 
     def prestart(self):
