@@ -2,18 +2,21 @@ language: python
 
 python: 3.6
 
-services: cassandra
+sudo: required
 
-sudo: false
-
-env:
-  matrix:
-    - TOXENV=py27
-    - TOXENV=py35
-    - TOXENV=py36
-    - TOXENV=coverage
-    - TOXENV=py27 CASSANDRA=3.11.1
-    - TOXENV=py36 CASSANDRA=3.11.1
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27
+      services: cassandra
+    - python: 3.5
+      env: TOXENV=py35
+      services: cassandra
+    - python: 3.6
+      env: TOXENV=py36
+      services: cassandra
+    - env: TOXENV=coverage
+    - env: TOXENV=py36 CASSANDRA=3.11.1
 
 cache:
   directories:
